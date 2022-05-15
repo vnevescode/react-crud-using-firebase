@@ -18,6 +18,35 @@ const AddEdit = () => {
 
   const navigate = useNavigate();
 
+  const { id } = useParams();
+
+  useEffect(()=>{
+    fireDb.child("contacts").on("value", (snapshot)=>{
+      if(snapshot.val() !== null){
+        setData({...snapshot.val()});
+      }else{
+        setData({});
+      }
+    });
+
+    return () => {
+      setData({});
+    }
+  }, [id]);
+
+  useEffect(()=>{
+    if(id){
+      setState({...data[id]});
+    }else{
+      setState({...initialState});
+    }
+    return () =>{
+      setState({...initialState});
+    };
+  },[id,data]);
+
+
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setState({ ...state, [name]:value});
@@ -26,15 +55,28 @@ const AddEdit = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if(!name || !email || !contact ){
-      toast.error("Please provide value in each input field")
+      toast.error("Please provide value in each input field");
     }else{
-      fireDb.child("contacts").push(state, (err)=>{
-        if(err){
-          toast.error(err);
-        } else{
-          toast.success("Contact Added Successfully");
-        }
-      });
+      // there is no id create a new register
+      if(!id){
+        fireDb.child("contacts").push(state, (err)=>{
+          if(err){
+            toast.error(err);
+          } else{
+            toast.success("Contact Added Successfully");
+          }
+        });
+      }else{
+        fireDb.child(`contacts/${id}`).set(state, (err)=>{
+          if(err){
+            toast.error(err);
+          } else{
+            toast.success("Contact Updated Successfully");
+          }
+        });
+      }
+      
+      
       setTimeout(()=> navigate("/"), 500);
     }
   };
@@ -57,7 +99,7 @@ const AddEdit = () => {
             id="name"
             name="name"
             placeHolder="Your Name..."
-            value={name}
+            value={name || ""}
             onChange={handleInputChange}
           />
           <label htmlFor='email'>Email</label>
@@ -66,7 +108,7 @@ const AddEdit = () => {
             id="email"
             name="email"
             placeHolder="Your Email..."
-            value={email}
+            value={email || ""}
             onChange={handleInputChange}
           />
           <label htmlFor='contact'>Contact</label>
@@ -75,10 +117,10 @@ const AddEdit = () => {
             id="contact"
             name="contact"
             placeHolder="Your Contact..."
-            value={contact}
+            value={contact || ""}
             onChange={handleInputChange}
           />
-          <input type="submit" value="save"></input>
+          <input type="submit" value={id ? "Update":"Save"}></input>
         </form>
     </div>
   )
